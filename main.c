@@ -89,6 +89,19 @@ void GPIO_init()
     P4->DIR |= BIT0 | BIT1 | BIT2 | BIT3 | BIT4 | BIT5 | BIT6;
 }
 
+int read_ADC()
+{
+    while(ADC14->CTL0[16] == 1)
+    {
+        //Wait for conversion to complete
+    }
+
+    //Get ADC Conversion Result
+    uint16_t conversion_result = ADC14->MEM[0];
+
+    return conversion_result * (3.3/16384);
+}
+
 void main(void)
 {
 	WDT_A->CTL = WDT_A_CTL_PW | WDT_A_CTL_HOLD;		// stop watchdog timer
