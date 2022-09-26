@@ -78,7 +78,7 @@ void ADC_config()
     ADC14->MCTL[0] |= (1<<2);
 
     //Enable conversion
-    ADC14->CTL0 |= 0b1
+    ADC14->CTL0 |= 0b1;
 }
 
 void GPIO_init()
@@ -91,10 +91,12 @@ void GPIO_init()
 
 int read_ADC()
 {
-    while(ADC14->CTL0[16] == 1)
+    /*
+    while(ADC14->CTL0[16] == 0b1)
     {
         //Wait for conversion to complete
     }
+    */
 
     //Get ADC Conversion Result
     uint16_t conversion_result = ADC14->MEM[0];
@@ -113,8 +115,8 @@ void main(void)
 	while(1)
 	{
 	    read_ADC();
-	    convert_float_to_array();
-	    display_array();
+	    //convert_float_to_array();
+	    //display_array();
 	}
 }
 //ADC Lab 3
