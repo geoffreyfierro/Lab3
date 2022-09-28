@@ -149,7 +149,7 @@ void main(void)
 
 	while(1)
 	{
-	    // get_ADC_conversion_result(); // start conversion, polling, and read result 
+	    // get_ADC_conversion_result(read_ADC()); // start conversion, polling, and read result 
 	    //convert_ADC_result_to_Vin(); // convert adc reading to array of digits
 	    //display_ADC_result_to_Vin(); // display on 4-digit display
 	}
