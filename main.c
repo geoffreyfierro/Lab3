@@ -10,8 +10,10 @@
 /**
  * main.c
  */
+ 
+ int count = 0;
 
-void simple_clock_init(void)
+void simple_clock_init(void) // sets up clock and associated wait-state settings
 {
     //Set power level for the desired clock frequency
     while (PCM->CTL1 & 0x00000100) {;} //wait for PCM to become not busy
@@ -44,8 +46,10 @@ void ADC_config()
     P5->SEL0 |= BIT1;
 
     //Set ADC14ENC to enable ADC configuration
-    ADC14->CTL0 &= !BIT1;
-    ADC14->CTL0 &= !ADC14_CTL0_ENC;
+    //Bits in control register can only be modified when ADC14ENC = 0
+    // Bit has to be set to 1 for ADC conversion operation
+    ADC14->CTL0 &= ~BIT1;
+    // OR .. ADC14->CTL0 &= !ADC14_CTL0_ENC;
 
     //Set Clock Divider 4
     ADC14->CTL0 |= (1<<30);//Bit 30 to 1
@@ -73,7 +77,7 @@ void ADC_config()
     //Turn on ADC power
     ADC14->CTL0 |= (1<<4);
 
-    //Set ADC14INCHx to A4
+    //Set ADC14INCHx to A4 for x = 0
     ADC14->MCTL[0] &= ~(0x1F);
     ADC14->MCTL[0] |= (1<<2);
 
@@ -89,19 +93,50 @@ void GPIO_init()
     P4->DIR |= BIT0 | BIT1 | BIT2 | BIT3 | BIT4 | BIT5 | BIT6;
 }
 
+void busy_wait()
+{
+    count = 0;
+    
+    while (count < 1000)
+    {
+        count++;
+    }
+}
+
 int read_ADC()
 {
+    ADC14->CTL0 |= BIT1; // enable bit to allow conversion
     /*
     while(ADC14->CTL0[16] == 0b1)
     {
-        //Wait for conversion to complete
+         busy_wait();   //Wait for conversion to complete
     }
     */
 
     //Get ADC Conversion Result
+
+    ADC14->CTL0 &= ~BIT1; // set bit back to 0 after conversion 
+
     uint16_t conversion_result = ADC14->MEM[0];
 
     return conversion_result * (3.3/16384);
+}
+
+void convert_ADC_result_to_Vin(int conversion_result)
+{
+
+    ADC14->CTL0 |= BIT1;
+    int temp = conversion_result * 1000;
+    display[3] = temp / 1000;
+    temp = temp % 1000;
+    display[2] = temp / 100;
+    temp = temp % 100;
+    display[1] = temp / 10;
+    temp = temp % 10;
+    display[0] = temp;
+
+    ADC14->CTL0 &= ~BIT1
+    
 }
 
 void main(void)
@@ -114,9 +149,9 @@ void main(void)
 
 	while(1)
 	{
-	    read_ADC();
-	    //convert_float_to_array();
-	    //display_array();
+	    // get_ADC_conversion_result(); // start conversion, polling, and read result 
+	    //convert_ADC_result_to_Vin(); // convert adc reading to array of digits
+	    //display_ADC_result_to_Vin(); // display on 4-digit display
 	}
 }
 //ADC Lab 3
