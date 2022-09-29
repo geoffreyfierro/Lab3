@@ -12,7 +12,11 @@
  */
  
  int count = 0;
- int display[4] = {0, 0, 0, 0,};
+ int k = 0; 
+ int display[4] = {0b11011111, 0b11101111, 0b11110111, 0b11111011};
+ int sseg_table[10]={0b11000000,0b11111001,0b10100100,0b10110000,
+    0B10011001,0b10010010,0b010000010,0b11111000,
+    0b10000000,0b10010000};
 
 void simple_clock_init(void) // sets up clock and associated wait-state settings
 {
@@ -75,8 +79,12 @@ void ADC_config()
     ADC14->CTL0 &= ~(1<<21);
     ADC14->CTL0 |= (1<<20);
     ADC14->CTL0 |= (1<<19);
+	
+    //Sets ADC14CONSEQx to single-channel single-conversion
+    ADC14->CTL0 &= ~(1<<18);
+    ADC14->CTL0 &= ~(1<<17);
 
-    //Set ADC14SHT0x to 32
+    //Set ADC14SHT0x to 32, number of cycles in sample period
     ADC14->CTL0 &= ~(1<<11);
     ADC14->CTL0 &= ~(1<<10);
     ADC14->CTL0 |= (1<<9);
@@ -88,9 +96,25 @@ void ADC_config()
     //Set ADC14INCHx to A4 for x = 0
     ADC14->MCTL[0] &= ~(0x1F);
     ADC14->MCTL[0] |= (1<<2);
+    
+    //Sets ADC14DF to unsigned binary format	
+    ADC14->CTL1 &= ~(1<<3);
+
+    // Sets ADC14VRSEL reference voltages to 3.3v and 0V
+	
+    ADC14->CTL1 &= ~(1<<11);
+    ADC14->CTL1 &= ~(1<<10);
+    ADC14->CTL1 &= ~(1<<9);
+    ADC14->CTL1 &= ~(1<<8);
+
+    // Sets ADC14LO0 to 0x0000
+    ADC14->LO0 &= ~(0x0000);
+    // Sets ADC14HI0
+    ADC14->HI0 |= 0x3FFFF; 
 
     //Enable conversion
     ADC14->CTL0 |= 0b1;
+     
 }
 
 void GPIO_init()
@@ -111,20 +135,17 @@ void busy_wait()
     }
 }
 
-int read_ADC()
+int get_ADC_conversion_result()
 {
     ADC14->CTL0 |= BIT1; // enable bit to allow conversion
-    ADC14->CTL0 |= BIT0 // start converion bit, resets to zero after conversion
-    /*
-    while(ADC14->CTL0[16] == 0b1) // busy bit indicating active sample or conversino operation in session
+    ADC14->CTL0 |= BIT0 // start conversion bit, resets to zero after conversion
+    
+    while(ADC14->CTL0[16] == 0b1) // busy bit indicating active sample or conversion operation in session
     				  // polling method ?
     {
          busy_wait();   //Wait for conversion to complete
     }
-    */
-
-    //Get ADC Conversion Result
-
+    
     ADC14->CTL0 &= ~BIT1; // set bit back to 0 after conversion 
 
     uint16_t conversion_result = ADC14->MEM[0];
@@ -143,18 +164,19 @@ void convert_ADC_result_to_Vin(int conversion_result)
     display[1] = temp / 10;
     temp = temp % 10;
     display[0] = temp;
-
-   
-    
+	
 }
-void display_ADC_result_to_Vin()
+void display_ADC_result_to_Vin() // simlar to keypad code in lab 1, task a
 {
-	// simlar to keypad code in lab 1, task a
-	// P4->OUT = 
-	// P8->OUT = 
+	 P4->OUT = display[k];
+	 P8->OUT = sseg_table[k];
+	
+	 if (k>=3)
+	    k=0;
+	 else
+	     k=k+1;
 }
 	
-
 void main(void)
 {
 	WDT_A->CTL = WDT_A_CTL_PW | WDT_A_CTL_HOLD;		// stop watchdog timer
@@ -165,9 +187,9 @@ void main(void)
 
 	while(1)
 	{
-	    // get_ADC_conversion_result(read_ADC()); // start conversion, polling, and read result 
-	    //convert_ADC_result_to_Vin(); // convert adc reading to array of digits
-	    //display_ADC_result_to_Vin(); // display on 4-digit display
+	    get_ADC_conversion_result(); // start conversion, polling, and read result 
+	    convert_ADC_result_to_Vin(); // convert adc reading to array of digits
+	    display_ADC_result_to_Vin(); // display on 4-digit display
 	}
 }
 //ADC Lab 3
