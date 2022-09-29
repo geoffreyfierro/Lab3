@@ -12,7 +12,8 @@
  */
  
  int count = 0;
- int k = 0; 
+ int k = 0;
+ int conversion_result = 0;
  int display[4] = {0b11011111, 0b11101111, 0b11110111, 0b11111011};
  int sseg_table[10]={0b11000000,0b11111001,0b10100100,0b10110000,
     0B10011001,0b10010010,0b010000010,0b11111000,
@@ -54,7 +55,7 @@ void ADC_config()
     //Set ADC14ENC to enable ADC configuration
     //Bits in control register can only be modified when ADC14ENC = 0
     // Bit has to be set to 1 for ADC conversion operation
-    ADC14->CTL0 &= ~BIT1;
+    ADC14->CTL0 &= BIT1;
     // OR .. ADC14->CTL0 &= !ADC14_CTL0_ENC;
    
     //Set Predivider 
@@ -90,9 +91,6 @@ void ADC_config()
     ADC14->CTL0 |= (1<<9);
     ADC14->CTL0 |= (1<<8);
 
-    //Turn on ADC power, bit 4 = 1
-    ADC14->CTL0 |= (1<<4); 
-
     //Set ADC14INCHx to A4 for x = 0
     ADC14->MCTL[0] &= ~(0x1F);
     ADC14->MCTL[0] |= (1<<2);
@@ -119,8 +117,14 @@ void ADC_config()
     // Sets ADC14HI0
     ADC14->HI0 |= 0x3FFFF; 
 
-    //Enable conversion
-    ADC14->CTL0 |= 0b1;
+    //Turn on ADC power, bit 4 = 1
+    ADC14->CTL0 |= (1<<4);
+
+    //Set ADC14ENC to 1
+    ADC14->CTL0 |= (1<<2);
+
+    //Start conversion
+    ADC14->CTL0 |= (1<<0);
      
 }
 
@@ -144,14 +148,10 @@ void busy_wait()
 
 int get_ADC_conversion_result()
 {
-    ADC14->CTL0 |= BIT1; // enable bit to allow conversion
-    ADC14->CTL0 |= BIT0 // start conversion bit, resets to zero after conversion
+    //ADC14->CTL0 |= BIT1; // enable bit to allow conversion
+    //ADC14->CTL0 |= BIT0; // start conversion bit, resets to zero after conversion
     
-    while(ADC14->CTL0[16] == 0b1) // busy bit indicating active sample or conversion operation in session
-    				  // polling method ?
-    {
-         busy_wait();   //Wait for conversion to complete
-    }
+    while(ADC14->CTL0 & 0x00010000){;} // busy bit indicating active sample or conversion operation in session
     
     ADC14->CTL0 &= ~BIT1; // set bit back to 0 after conversion 
 
@@ -175,13 +175,14 @@ void convert_ADC_result_to_Vin(int conversion_result)
 }
 void display_ADC_result_to_Vin() // simlar to keypad code in lab 1, task a
 {
-	 P4->OUT = display[k];
-	 P8->OUT = sseg_table[k];
+
+	P4->OUT = display[k];
+	P8->OUT = sseg_table[k];
 	
-	 if (k>=3)
-	    k=0;
-	 else
-	     k=k+1;
+	if (k>=3)
+	   k=0;
+	else
+	    k=k+1;
 }
 	
 void main(void)
@@ -194,8 +195,9 @@ void main(void)
 
 	while(1)
 	{
-	    get_ADC_conversion_result(); // start conversion, polling, and read result 
-	    convert_ADC_result_to_Vin(); // convert adc reading to array of digits
+	    // start conversion, polling, and read result
+	    conversion_result = get_ADC_conversion_result();
+	    convert_ADC_result_to_Vin(conversion_result); // convert adc reading to array of digits
 	    display_ADC_result_to_Vin(); // display on 4-digit display
 	}
 }
