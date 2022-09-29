@@ -96,8 +96,11 @@ void ADC_config()
     //Set ADC14INCHx to A4 for x = 0
     ADC14->MCTL[0] &= ~(0x1F);
     ADC14->MCTL[0] |= (1<<2);
+	
+    ADC14->CTL1 |= 0x0000;
     
     //Sets ADC14DF to unsigned binary format	
+	
     ADC14->CTL1 &= ~(1<<3);
 
     // Sets ADC14VRSEL reference voltages to 3.3v and 0V
@@ -107,8 +110,12 @@ void ADC_config()
     ADC14->CTL1 &= ~(1<<9);
     ADC14->CTL1 &= ~(1<<8);
 
+    // Sets ADC14RES to 14-bit ADC
+    ADC14->CTL1 |= 0x03;
+
     // Sets ADC14LO0 to 0x0000
-    ADC14->LO0 &= ~(0x0000);
+    ADC14->LO0 |= 0x0000;
+
     // Sets ADC14HI0
     ADC14->HI0 |= 0x3FFFF; 
 
